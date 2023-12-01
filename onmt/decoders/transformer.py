@@ -298,7 +298,9 @@ class TransformerDecoder(DecoderBase):
 
         output = emb.transpose(0, 1).contiguous()
         src_memory_bank = memory_bank.transpose(0, 1).contiguous()
-
+        
+        output = torch.concat([src_memory_bank[:, :1].repeat([1, tgt.size(0), 1]), output], dim=-1)
+        src_memory_bank = src_memory_bank.repeat(1,1,2)
         pad_idx = self.embeddings.word_padding_idx
         src_lens = kwargs["memory_lengths"]
         src_max_len = self.state["src"].shape[0]
