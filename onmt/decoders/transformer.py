@@ -220,7 +220,7 @@ class TransformerDecoder(DecoderBase):
                  copy_attn, self_attn_type, dropout, attention_dropout,
                  embeddings, max_relative_positions, aan_useffn,
                  full_context_alignment, alignment_layer,
-                 alignment_heads):
+                 alignment_heads, token_embedding):
         super(TransformerDecoder, self).__init__()
 
         self.embeddings = embeddings
@@ -240,6 +240,7 @@ class TransformerDecoder(DecoderBase):
         # previously, there was a GlobalAttention module here for copy
         # attention. But it was never actually used -- the "copy" attention
         # just reuses the context attention.
+        self.token_embedding = token_embedding
         self._copy = copy_attn
         self.layer_norm = nn.LayerNorm(d_model, eps=1e-6)
 
@@ -299,8 +300,9 @@ class TransformerDecoder(DecoderBase):
         output = emb.transpose(0, 1).contiguous()
         src_memory_bank = memory_bank.transpose(0, 1).contiguous()
         
-        output = torch.concat([src_memory_bank[:, :1].repeat([1, tgt.size(0), 1]), output], dim=-1)
-        src_memory_bank = src_memory_bank.repeat(1,1,2)
+        if self.token_embedding:
+            output = torch.concat([src_memory_bank[:, :1].repeat([1, tgt.size(0), 1]), output], dim=-1)
+            src_memory_bank = src_memory_bank.repeat(1,1,2)
         pad_idx = self.embeddings.word_padding_idx
         src_lens = kwargs["memory_lengths"]
         src_max_len = self.state["src"].shape[0]
